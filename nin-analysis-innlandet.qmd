@@ -1,0 +1,208 @@
+---
+title: "NiN analysis Innlandet"
+format: html
+author: Øystein Sporild Myran
+editor: visual 
+---
+
+```{r}
+# =========================================================
+# PORTFOLIO GIS PROJECT
+# NiN-naturtyper innen simulert 10km x 10km planområde
+# Innlandet, Norge
+# =========================================================
+
+# -------------------------
+# 1. Pakker
+# -------------------------
+
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(ggspatial)
+
+# -------------------------
+# 2. Les inn data
+# -------------------------
+
+# Endre til din egen sti
+gdb_path <- "~/nin-analysis-innlandet/naturtyper_innlandet.gdb"
+
+# Se hvilke lag som finnes
+st_layers(gdb_path)
+
+# Les inn naturtypedata
+natur <- st_read(
+  gdb_path,
+  layer = "naturtyper_nin_omr"
+)
+
+# Sjekk koordinatsystem
+st_crs(natur)
+
+# -------------------------
+# 3. Finn sentrum av datasettet
+# -------------------------
+
+sentrum <- st_centroid(st_union(natur))
+coords <- st_coordinates(sentrum)
+
+x_mid <- coords[1]
+y_mid <- coords[2]
+
+# -------------------------
+# 4. Lag simulert planområde
+# (10 km x 10 km)
+# -------------------------
+
+plan_coords <- matrix(
+  c(
+    x_mid - 5000, y_mid - 5000,
+    x_mid + 5000, y_mid - 5000,
+    x_mid + 5000, y_mid + 5000,
+    x_mid - 5000, y_mid + 5000,
+    x_mid - 5000, y_mid - 5000
+  ),
+  ncol = 2,
+  byrow = TRUE
+)
+
+plan_polygon <- st_polygon(list(plan_coords))
+
+plan_sf <- st_sf(
+  geometry = st_sfc(
+    plan_polygon,
+    crs = st_crs(natur)
+  )
+)
+
+# -------------------------
+# 5. Spatial intersection
+# -------------------------
+
+natur_klippet <- st_intersection(natur, plan_sf)
+
+# -------------------------
+# 6. Beregn areal
+# -------------------------
+
+natur_klippet$Areal_ha <-
+  as.numeric(st_area(natur_klippet)) / 10000
+
+# -------------------------
+# 7. Lag arealtabell
+# -------------------------
+
+natur_tabell <- st_drop_geometry(natur_klippet)
+
+areal_per_type <- natur_tabell %>%
+  group_by(naturtype) %>%
+  summarise(
+    Areal_ha = sum(Areal_ha, na.rm = TRUE)
+  ) %>%
+  arrange(desc(Areal_ha))
+
+print(areal_per_type)
+
+# -------------------------
+# 8. Velg største naturtyper
+# -------------------------
+
+top_types <- areal_per_type %>%
+  slice_max(Areal_ha, n = 5) %>%
+  pull(naturtype)
+
+natur_klippet$naturgruppe <- ifelse(
+  natur_klippet$naturtype %in% top_types,
+  natur_klippet$naturtype,
+  "Andre naturtyper"
+)
+
+# -------------------------
+# 9. Reprojiser til Web Mercator
+# (viktig for bakgrunnskart)
+# -------------------------
+
+natur_web <- st_transform(natur_klippet, 3857)
+plan_web <- st_transform(plan_sf, 3857)
+
+# -------------------------
+# 10. Bounding box
+# -------------------------
+
+bbox <- st_bbox(natur_web)
+
+# -------------------------
+# 11. Lag kart
+# -------------------------
+
+library(sf)
+library(dplyr)
+library(ggplot2)
+
+# Bounding box rundt data
+bbox <- st_bbox(natur_klippet)
+
+# Lag kart
+p <- ggplot() +
+
+  # Naturtyper
+  geom_sf(
+    data = natur_klippet,
+    aes(fill = naturgruppe),
+    color = "grey30",
+    linewidth = 0.1,
+    alpha = 0.9
+  ) +
+
+  # Zoom til data
+  coord_sf(
+    xlim = c(bbox$xmin - 500, bbox$xmax + 500),
+    ylim = c(bbox$ymin - 500, bbox$ymax + 500),
+    expand = FALSE
+  ) +
+  
+  # Naturlig fargepalett
+  scale_fill_brewer(
+    palette = "PuOr",
+    name = "Naturtype"
+  ) +
+
+  # Nordpil
+  annotation_north_arrow(
+    location = "tr",
+    which_north = "true",
+    style = north_arrow_orienteering(),
+    height = unit(0.8, "cm"),
+    width = unit(0.8, "cm"),
+    pad_x = unit(0.5, "cm")
+  ) +
+
+  # Målestokk
+  annotation_scale(
+    location = "bl",
+    width_hint = 0.3
+  ) +
+
+  # Minimalistisk stil
+  theme_minimal(base_size = 12) +
+
+  labs(
+    title = "Kartlagte NiN-naturtyper",
+    subtitle = "Simulert analyseomraade i Innlandet",
+    fill = "Naturtype"
+  ) +
+
+  theme(
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    plot.title = element_text(
+      face = "bold",
+      size = 16
+    ),
+    legend.position = "right"
+  )
+
+# Vis kart
+p
+```
