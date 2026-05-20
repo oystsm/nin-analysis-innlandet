@@ -5,56 +5,61 @@ author: Øystein Sporild Myran
 editor: visual 
 ---
 
+GIS PORTFOLIO PROJECT:
+
+NiN-nature types within simulated 10km x 10km planning area
+
+Innlandet, Norway
+
+## 1. Setup
+
 ```{r}
-# =========================================================
-# PORTFOLIO GIS PROJECT
-# NiN-naturtyper innen simulert 10km x 10km planområde
-# Innlandet, Norge
-# =========================================================
 
-# -------------------------
-# 1. Pakker
-# -------------------------
-
+# Load packages
 library(sf)
 library(dplyr)
 library(ggplot2)
 library(ggspatial)
+```
 
-# -------------------------
-# 2. Les inn data
-# -------------------------
+## 2. Load data
 
-# Endre til din egen sti
-gdb_path <- "~/nin-analysis-innlandet/naturtyper_innlandet.gdb"
+```{r}
+# Make path to data
+gdb_path <- "~/GIS_data/NiN_data/naturtyper_innlandet.gdb"
 
-# Se hvilke lag som finnes
-st_layers(gdb_path)
-
-# Les inn naturtypedata
+# Read nature type data
 natur <- st_read(
   gdb_path,
   layer = "naturtyper_nin_omr"
 )
+```
 
-# Sjekk koordinatsystem
+## 3. Inspect data
+
+```{r}
+# Retrieve coordinate reference system
 st_crs(natur)
+# Return bounding of the data
+st_bbox(natur)
+# Get names in the data
+names(natur)
+```
 
-# -------------------------
-# 3. Finn sentrum av datasettet
-# -------------------------
+## 4. Find center of data set
 
+```{r}
 sentrum <- st_centroid(st_union(natur))
 coords <- st_coordinates(sentrum)
 
 x_mid <- coords[1]
 y_mid <- coords[2]
+```
 
-# -------------------------
-# 4. Lag simulert planområde
-# (10 km x 10 km)
-# -------------------------
+## 5. Create planning area
 
+```{r}
+# Create a simulated 10km x 10km planning area
 plan_coords <- matrix(
   c(
     x_mid - 5000, y_mid - 5000,
@@ -75,24 +80,25 @@ plan_sf <- st_sf(
     crs = st_crs(natur)
   )
 )
+```
 
-# -------------------------
-# 5. Spatial intersection
-# -------------------------
+## 6. Spatial intersection
 
+```{r}
 natur_klippet <- st_intersection(natur, plan_sf)
+```
 
-# -------------------------
-# 6. Beregn areal
-# -------------------------
+## 7. Area calculations
 
+```{r}
 natur_klippet$Areal_ha <-
   as.numeric(st_area(natur_klippet)) / 10000
+```
 
-# -------------------------
-# 7. Lag arealtabell
-# -------------------------
+## 8. Summaries
 
+```{r}
+#| warning: false
 natur_tabell <- st_drop_geometry(natur_klippet)
 
 areal_per_type <- natur_tabell %>%
@@ -103,11 +109,11 @@ areal_per_type <- natur_tabell %>%
   arrange(desc(Areal_ha))
 
 print(areal_per_type)
+```
 
-# -------------------------
-# 8. Velg største naturtyper
-# -------------------------
+## 9. Choosing largest nature types for visualization
 
+```{r}
 top_types <- areal_per_type %>%
   slice_max(Areal_ha, n = 5) %>%
   pull(naturtype)
@@ -117,36 +123,18 @@ natur_klippet$naturgruppe <- ifelse(
   natur_klippet$naturtype,
   "Andre naturtyper"
 )
+```
 
-# -------------------------
-# 9. Reprojiser til Web Mercator
-# (viktig for bakgrunnskart)
-# -------------------------
+## 10. Visualization
 
-natur_web <- st_transform(natur_klippet, 3857)
-plan_web <- st_transform(plan_sf, 3857)
-
-# -------------------------
-# 10. Bounding box
-# -------------------------
-
-bbox <- st_bbox(natur_web)
-
-# -------------------------
-# 11. Lag kart
-# -------------------------
-
-library(sf)
-library(dplyr)
-library(ggplot2)
-
-# Bounding box rundt data
+```{r}
+# Bounding box around data
 bbox <- st_bbox(natur_klippet)
 
-# Lag kart
-p <- ggplot() +
+# Plot map
+p_natur_klippet <- ggplot() +
 
-  # Naturtyper
+  # Nature types
   geom_sf(
     data = natur_klippet,
     aes(fill = naturgruppe),
@@ -155,20 +143,20 @@ p <- ggplot() +
     alpha = 0.9
   ) +
 
-  # Zoom til data
+  # Zoom to data
   coord_sf(
     xlim = c(bbox$xmin - 500, bbox$xmax + 500),
     ylim = c(bbox$ymin - 500, bbox$ymax + 500),
     expand = FALSE
   ) +
   
-  # Naturlig fargepalett
+  # Natural color palette 
   scale_fill_brewer(
     palette = "PuOr",
     name = "Naturtype"
   ) +
 
-  # Nordpil
+  # North arrow
   annotation_north_arrow(
     location = "tr",
     which_north = "true",
@@ -178,13 +166,13 @@ p <- ggplot() +
     pad_x = unit(0.5, "cm")
   ) +
 
-  # Målestokk
+  # Scale
   annotation_scale(
     location = "bl",
     width_hint = 0.3
   ) +
 
-  # Minimalistisk stil
+  # Minimalistic theme
   theme_minimal(base_size = 12) +
 
   labs(
@@ -203,8 +191,20 @@ p <- ggplot() +
     legend.position = "right"
   )
 
-# Vis kart
-p
+# Print plot
+p_natur_klippet
+
 ```
 
-test markdown sync
+## 11. Export figure
+
+```{r}
+# Save map as PNG in figures-folder
+ggsave(
+  filename = "figures/portfolio_map_clean.png",
+  plot = p_natur_klippet,
+  width = 10,
+  height = 7,
+  dpi = 300
+)
+```
