@@ -3,6 +3,7 @@ title: "NiN analysis Innlandet"
 format: html
 author: Øystein Sporild Myran
 editor: visual 
+lang: no
 ---
 
 GIS PORTFOLIO PROJECT:
@@ -56,13 +57,11 @@ Finally, the results were visualized using `ggplot2` and `ggspatial` to create a
 
 ## Inspect data
 
-```{r inspect-data}
+```{r inspect-data, include=FALSE}
 # Retrieve coordinate reference system
 st_crs(natur)
 # Return bounding of the data
 st_bbox(natur)
-# Get names in the data
-names(natur)
 ```
 
 ## Find center of data set
@@ -129,7 +128,7 @@ print(andel_kartlagt)
 
 ## Summarize nature types
 
-```{r summarize}
+```{r summarize, include=FALSE}
 #| warning: false
 natur_tabell <- st_drop_geometry(natur_klippet)
 
@@ -139,8 +138,6 @@ areal_per_type <- natur_tabell %>%
     Areal_ha = sum(Areal_ha, na.rm = TRUE)
   ) %>%
   arrange(desc(Areal_ha))
-
-print(areal_per_type)
 ```
 
 # Visualization
@@ -211,17 +208,26 @@ p_natur_klippet <- ggplot() +
 
   labs(
     title = "Kartlagte NiN-naturtyper",
-    subtitle = "Simulert analyseomraade i Innlandet",
+    subtitle = "Simulert analyseomrade i Innlandet",
+    caption = "Kilde: Miljodirektoratet - Natur i Norge (NiN) kartdata",
     fill = "Naturtype"
   ) +
 
   theme(
     panel.grid = element_blank(),
+    panel.background = element_rect(fill = "white", color = NA),
+    plot.background  = element_rect(fill = "white", color = NA),
     axis.title = element_blank(),
     plot.title = element_text(
       face = "bold",
       size = 16
     ),
+    
+    plot.caption = element_text(
+    size = 8,
+    hjust = 0,
+    color = "grey40"
+  ),
     legend.position = "right"
   )
 
@@ -245,6 +251,6 @@ ggsave(
 
 The spatial analysis identified a range of mapped nature types within the the selected planning area. Within the 10km $\times$ 10km planning area, mapped nature type polygons covered approximately 414 hectares, corresponding to about 4.1$\%$ of the total area. This reflects the selective and time consuming nature of ecological field mapping, where the standards and focus of the mapping procedure is set by the project client.
 
-There are four types that stand out in terms of geographical coverage: *Kalkfattig og intermediær fjellhei, leside og tundra* (347 ha), *Boreal hei* (36.3 ha), *Naturbeitemark* (16.3 ha) and *Høgreliggende og nordlig nedbørsmyr* (12.1 ha). Together, these account for 411.7 hectares, corresponding to 99.4$\%$ of the total mapped nature type area.
+There are four types that stand out in terms of geographical coverage: *Kalkfattig og intermediaer fjellhei, leside og tundra* (347 ha), *Boreal hei* (36.3 ha), *Naturbeitemark* (16.3 ha) and *Hogreliggende og nordlig nedborsmyr* (12.1 ha). Together, these account for 411.7 hectares, corresponding to 99.4$\%$ of the total mapped nature type area.
 
 This project provided practical experience working with spatial ecological data in R and served as a refresher on GIS workflows involving NiN datasets. In addition to the technical aspects of the spatial analysis, the project also highlighted several important considerations in cartographic visualization, including the selection of an appropriate planning area, decisions regarding which spatial information to include, and the importance of effective color palette design for communicating ecological patterns in a clear way.

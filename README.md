@@ -42,7 +42,7 @@ Because the original dataset is relatively large, the raw spatial data are not i
 
 ## Output
 
-![](figures/portfolio_map_clean.png)
+![Portfolio map](figures/portfolio_map_clean.png)
 
 ## Repository structure
 
