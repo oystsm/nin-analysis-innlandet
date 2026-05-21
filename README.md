@@ -56,8 +56,7 @@ nin-analysis-innlandet/
 ├── README.md
 ├── analysis.qmd
 ├── figures/
-│   └── portfolio_map_clean.png
-└── scripts/
+    └── portfolio_map_clean.png
 ```
 
 ## Tools and packages
