@@ -11,10 +11,15 @@ NiN-nature types within simulated 10km x 10km planning area
 
 Innlandet, Norway
 
-## 1. Setup
+# Introduction
 
-```{r}
+This project was created as a way for me to further develop my GIS and spatial analysis skills, building upon what I learned during my time as a master's student in bioscience at the University of Oslo. The project demonstrates a basic spatial analysis workflow in R using "nature type" data based on the Norwegian Nature in Norway (NiN) classification system. The goal was simple: identify and summarize mapped nature types within a selected planning area in Innlandet county.
 
+# Data
+
+## Setup
+
+```{r load-packages}
 # Load packages
 library(sf)
 library(dplyr)
@@ -22,9 +27,11 @@ library(ggplot2)
 library(ggspatial)
 ```
 
-## 2. Load data
+## Load data
 
-```{r}
+The NiN nature type dataset was imported from an ESRI geodatabase (EPSG:25833) downloaded from Miljødirektoratet.
+
+```{r load-data}
 # Make path to data
 gdb_path <- "~/GIS_data/NiN_data/naturtyper_innlandet.gdb"
 
@@ -35,9 +42,21 @@ natur <- st_read(
 )
 ```
 
-## 3. Inspect data
+# Methods
 
-```{r}
+First, the coordinate reference system (CRS) and spatial extent of the dataset were inspected to ensure that all layers used compatible spatial projections. The center point of the dataset extent was then identified and used to define a smaller planning area for analysis and visualization.
+
+A rectangular planning area was created as an `sf` polygon object around the selected center coordinates. Spatial intersection analysis was then performed using `st_intersection()` to clip nature type polygons to the planning area, only retaining the portions of mapped nature types located within the analysis boundary.
+
+The area of each resulting polygon was calculated using `st_area()` and converted from square meters to hectares. Areas were then summarized by NiN nature type using functions from the `dplyr` package.
+
+In order to create a easily interpretable map, only the nature types covering the largest geographical area were used in visualization.
+
+Finally, the results were visualized using `ggplot2` and `ggspatial` to create a clean map suitable for a portfolio, showing the spatial distribution of mapped nature types within the selected planning area.
+
+## Inspect data
+
+```{r inspect-data}
 # Retrieve coordinate reference system
 st_crs(natur)
 # Return bounding of the data
@@ -46,9 +65,9 @@ st_bbox(natur)
 names(natur)
 ```
 
-## 4. Find center of data set
+## Find center of data set
 
-```{r}
+```{r find-center}
 sentrum <- st_centroid(st_union(natur))
 coords <- st_coordinates(sentrum)
 
@@ -56,9 +75,11 @@ x_mid <- coords[1]
 y_mid <- coords[2]
 ```
 
-## 5. Create planning area
+# Spatial analysis
 
-```{r}
+## Create planning area
+
+```{r create-planning-area}
 # Create a simulated 10km x 10km planning area
 plan_coords <- matrix(
   c(
@@ -82,22 +103,33 @@ plan_sf <- st_sf(
 )
 ```
 
-## 6. Spatial intersection
+## Spatial intersection
 
-```{r}
+```{r spatial-intersection}
+#| warning: false
 natur_klippet <- st_intersection(natur, plan_sf)
 ```
 
-## 7. Area calculations
+## Area calculations
 
-```{r}
+```{r area-calculations}
 natur_klippet$Areal_ha <-
   as.numeric(st_area(natur_klippet)) / 10000
+
+# Finding sum of mapped areas i hectare
+total_areal_kartlagt <- sum(natur_klippet$Areal_ha)
+
+print(total_areal_kartlagt)
+
+# Calculating % of total planning area mapped
+andel_kartlagt <- (total_areal_kartlagt / 10000) * 100
+
+print(andel_kartlagt)
 ```
 
-## 8. Summaries
+## Summarize nature types
 
-```{r}
+```{r summarize}
 #| warning: false
 natur_tabell <- st_drop_geometry(natur_klippet)
 
@@ -111,9 +143,11 @@ areal_per_type <- natur_tabell %>%
 print(areal_per_type)
 ```
 
-## 9. Choosing largest nature types for visualization
+# Visualization
 
-```{r}
+## Choosing largest nature types for visualization
+
+```{r largest-nature-types}
 top_types <- areal_per_type %>%
   slice_max(Areal_ha, n = 5) %>%
   pull(naturtype)
@@ -125,9 +159,9 @@ natur_klippet$naturgruppe <- ifelse(
 )
 ```
 
-## 10. Visualization
+## Plotting with ggplot2
 
-```{r}
+```{r p_natur_klippet-plot}
 # Bounding box around data
 bbox <- st_bbox(natur_klippet)
 
@@ -158,7 +192,7 @@ p_natur_klippet <- ggplot() +
 
   # North arrow
   annotation_north_arrow(
-    location = "tr",
+    location = "br",
     which_north = "true",
     style = north_arrow_orienteering(),
     height = unit(0.8, "cm"),
@@ -196,9 +230,7 @@ p_natur_klippet
 
 ```
 
-## 11. Export figure
-
-```{r}
+```{r save-as-PNG}
 # Save map as PNG in figures-folder
 ggsave(
   filename = "figures/portfolio_map_clean.png",
@@ -208,3 +240,11 @@ ggsave(
   dpi = 300
 )
 ```
+
+# Discussion
+
+The spatial analysis identified a range of mapped nature types within the the selected planning area. Within the 10km $\times$ 10km planning area, mapped nature type polygons covered approximately 414 hectares, corresponding to about 4.1$\%$ of the total area. This reflects the selective and time consuming nature of ecological field mapping, where the standards and focus of the mapping procedure is set by the project client.
+
+There are four types that stand out in terms of geographical coverage: *Kalkfattig og intermediær fjellhei, leside og tundra* (347 ha), *Boreal hei* (36.3 ha), *Naturbeitemark* (16.3 ha) and *Høgreliggende og nordlig nedbørsmyr* (12.1 ha). Together, these account for 411.7 hectares, corresponding to 99.4$\%$ of the total mapped nature type area.
+
+This project provided practical experience working with spatial ecological data in R and served as a refresher on GIS workflows involving NiN datasets. In addition to the technical aspects of the spatial analysis, the project also highlighted several important considerations in cartographic visualization, including the selection of an appropriate planning area, decisions regarding which spatial information to include, and the importance of effective color palette design for communicating ecological patterns in a clear way.
