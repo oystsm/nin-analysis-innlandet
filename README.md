@@ -30,7 +30,9 @@ A simulated 10km $\times$ 10km planning area was generated around the center of 
 
 The spatial dataset was downloaded from Miljødirektoratet and imported as an ESRI geodatabase (EPSG:25833).
 
-Because the original dataset is relatively large, the raw spatial data are not included directly in this repository.
+Because the original dataset is relatively large, the raw spatial data are not included directly in this repository. Download NiN data from:
+
+<https://karteksport.miljodirektoratet.no/#page=tab1>
 
 ## Main findings
 
@@ -42,7 +44,7 @@ Because the original dataset is relatively large, the raw spatial data are not i
 
 ## Output
 
-![Portfolio map](figures/portfolio_map_clean.png)
+![](figures/portfolio_map_clean.png)
 
 ## Repository structure
 
